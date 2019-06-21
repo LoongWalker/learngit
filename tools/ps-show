@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#defult program
+GUI=xdg-open
+DIRECTDOT=0
+
+# exit on any error
+set -e
+
+if which xdot &>/dev/null; then
+	GUI=xdot
+	DIRECTDOT=1
+elif which okular &>/dev/null; then
+	GUI=okular
+elif which evince &>/dev/null; then
+	GUI=evince
+fi
+
+`dirname $0`/llvm-ps-dump -dot $@ > _ps.dot
+
+
+if [ $DIRECTDOT -eq 1 ]; then
+	$GUI _ps.dot
+	rm _ps.dot
+else
+	dot -Tpdf -o _ps.pdf _ps.dot
+	$GUI _ps.pdf
+	rm _ps.pdf _ps.dot
+fi

@@ -1,0 +1,63 @@
+language: cpp
+sudo: true
+
+dist: trusty
+
+git:
+  depth: 1
+
+addons:
+  apt:
+    sources:
+      # newer gcc and clang
+      - ubuntu-toolchain-r-test
+      - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
+        key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+      - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main'
+    packages:
+      - libz-dev
+
+env:
+    - LLVM=3.8 PTA=fs RDA=dense
+    - LLVM=3.8 PTA=fi RDA=dense
+    - LLVM=3.8 PTA=inv RDA=dense
+    - LLVM=4.0 PTA=fs RDA=dense
+    - LLVM=4.0 PTA=fi RDA=dense
+    - LLVM=4.0 PTA=inv RDA=dense
+    - LLVM=5.0 PTA=fs RDA=dense
+    - LLVM=5.0 PTA=fi RDA=dense
+    - LLVM=5.0 PTA=inv RDA=dense
+    - LLVM=3.8 PTA=fs RDA=ss
+    - LLVM=3.8 PTA=fi RDA=ss
+    - LLVM=3.8 PTA=inv RDA=ss
+    - LLVM=4.0 PTA=fs RDA=ss
+    - LLVM=4.0 PTA=fi RDA=ss
+    - LLVM=4.0 PTA=inv RDA=ss
+    - LLVM=5.0 PTA=fs RDA=ss
+    - LLVM=5.0 PTA=fi RDA=ss
+    - LLVM=5.0 PTA=inv RDA=ss
+
+compiler:
+    - 'clang++'
+    - 'g++'
+    - 'g++-5'
+
+install:
+  - git clone --depth 1 https://github.com/tomsik68/travis-llvm.git
+  - cd travis-llvm
+  - chmod +x travis-llvm.sh
+  - ./travis-llvm.sh ${LLVM}
+  - cd ..
+
+script:
+  # gcc in the versions that we use has problems with sanitizers
+  - if test "$CXX" = "clang++"; then export CXX_FLAGS="-fsanitize=undefined,address"; fi
+  - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=$CXX_FLAGS .
+  - make -j2
+  - cd tests
+  - make
+  # for now turn off the detection of leaks, we're working on it
+  - ASAN_OPTIONS=detect_leaks=0 DG_TESTS_PTA="$PTA" DG_TESTS_RDA="$RDA" make test
+
+notifications:
+    email: false
